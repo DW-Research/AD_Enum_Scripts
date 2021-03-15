@@ -115,3 +115,63 @@ Foreach($obj in $Result1)
 }	
 ```
 
+Enumerate SPN's
+
+```
+$domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$PDC = ($domainObj.PdcRoleOwner).Name
+$SearchString = "LDAP://"
+$SearchString += $PDC + "/"
+$DistinguishedName = "DC=$($domainObj.Name.Replace('.', ',DC='))"
+$SearchString += $DistinguishedName
+$Searcher = New-Object System.DirectoryServices.DirectorySearcher([ADSI]$SearchString)
+$objDomain = New-Object System.DirectoryServices.DirectoryEntry
+$Searcher.SearchRoot = $objDomain
+$Searcher.filter="serviceprincipalname=*http*"
+$Result = $Searcher.FindAll()
+Foreach($obj in $Result)
+{
+	Foreach($prop in $obj.Properties)
+	{
+	$prop
+	}
+}
+```
+
+Enumerate IP's
+
+```
+$domainObj = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+$PDC = ($domainObj.PdcRoleOwner).Name
+$SearchString = "LDAP://"
+$SearchString += $PDC + "/"
+$DistinguishedName = "DC=$($domainObj.Name.Replace('.', ',DC='))"
+$SearchString += $DistinguishedName
+$Searcher = New-Object System.DirectoryServices.DirectorySearcher([ADSI]$SearchString)
+$objDomain = New-Object System.DirectoryServices.DirectoryEntry
+$Searcher.SearchRoot = $objDomain
+
+$Searcher.filter="serviceprincipalname=*"
+
+$Result = $Searcher.FindAll()
+
+Foreach($obj in $Result) {
+    Foreach($prop in $obj.Properties) {
+        $prop
+        $SPNDomain = ([regex]::Matches($prop.serviceprincipalname, '([a-zA-Z0-9.-]+).[a-zA-Z0-9.-]+').value)
+        if ($SPNDomain -ne $null) {
+            $dnshost = $SPNDomain.split('/')[1].split(' ')
+            "Domain: " + $dnshost
+           $ip = [System.Net.Dns]::GetHostAddresses($dnshost)
+
+            Foreach($address in $ip) {
+                Write-Host("IP: " + $address)
+                }
+     }
+
+    }
+    Write-Host("========================================")
+}
+```
+
+
